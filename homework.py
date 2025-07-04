@@ -4,7 +4,7 @@ import requests
 import time
 
 from dotenv import load_dotenv
-from telebot import TeleBot, types
+from telebot import TeleBot
 
 load_dotenv()
 
@@ -127,7 +127,6 @@ def parse_status(homework):
 
 def main():
     """Основная логика работы бота."""
-
     if not check_tokens():
         logging.critical('Отсутствуют обязательные переменные окружения')
         exit(1)
