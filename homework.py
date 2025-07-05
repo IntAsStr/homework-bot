@@ -120,6 +120,25 @@ def parse_status(homework: Dict[str, Any]) -> str:
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
+def _handle_homeworks(
+        homeworks: list, bot: TeleBot, last_sent_message: str
+        ) -> str:
+    if homeworks:
+        message = parse_status(homeworks[0])
+        if message != last_sent_message:
+            send_message(bot, message)
+            logging.debug('Сообщение о статусе отправлено')
+            return message
+    else:
+        no_changes_message = "Нет новых статусов - работы не проверены"
+        if no_changes_message != last_sent_message:
+            send_message(bot, no_changes_message)
+            logging.debug('Сообщение об отсутствии изменений отправлено')
+            return no_changes_message
+
+    return last_sent_message
+
+
 def main() -> None:
     """Основная логика работы бота."""
     missing_tokens = check_tokens()
@@ -133,25 +152,15 @@ def main() -> None:
     bot = TeleBot(token=TELEGRAM_TOKEN)
     logging.info('Бот запущен')
     timestamp = int(time.time())
-    last_sent_message = None
-
+    last_sent_message: str | None = None
     while True:
         try:
             response = get_api_answer(timestamp)
             homeworks = check_response(response)
 
-            if homeworks:
-                message = parse_status(homeworks[0])
-                if message != last_sent_message:
-                    send_message(bot, message)
-                    last_sent_message = message
-                    logging.debug('Сообщение отправлено')
-            else:
-                no_changes_message = "Нет новых статусов - работы не проверены"
-                if no_changes_message != last_sent_message:
-                    send_message(bot, no_changes_message)
-                    last_sent_message = no_changes_message
-                    logging.debug('Сообщение отсутствия изменений отправлено')
+            last_sent_message = _handle_homeworks(
+                homeworks, bot, last_sent_message
+            )
 
             timestamp = response.get('current_date', timestamp)
 
