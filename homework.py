@@ -152,8 +152,6 @@ def main() -> None:
                     send_message(bot, no_changes_message)
                     last_sent_message = no_changes_message
                     logging.debug('Сообщение отсутствия изменений отправлено')
-                
-
 
             timestamp = response.get('current_date', timestamp)
 
