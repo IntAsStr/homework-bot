@@ -121,8 +121,10 @@ def parse_status(homework: Dict[str, Any]) -> str:
 
 
 def _handle_homeworks(
-        homeworks: list, bot: TeleBot, last_sent_message: str
-        ):
+        homeworks: list,
+        bot: TeleBot,
+        last_sent_message: str
+) -> str | None:
     if homeworks:
         message = parse_status(homeworks[0])
         if message != last_sent_message:
