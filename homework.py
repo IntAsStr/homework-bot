@@ -43,20 +43,18 @@ def check_tokens() -> List[str]:
     return missing_tokens
 
 
-def send_message(bot: TeleBot, message: str) -> None:
+def send_message(bot: TeleBot, message: str) -> bool:
     """Отправляет сообщение в Telegram чат."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logging.debug('Сообщение отправлено')
+        return True
     except (requests.RequestException,
-            telebot.apihelper.ApiTelegramException, Exception
+            telebot.apihelper.ApiTelegramException
             ) as error:
         error_type = 'Неизвестная ошибка'
-        if isinstance(error, requests.RequestException):
-            error_type = 'Сетевая ошибка'
-        elif isinstance(error, telebot.apihelper.ApiTelegramException):
-            error_type = 'Ошибка телеграмм API'
         logging.error(f'{error_type} при отправке сообщения {error}')
+        return False
 
 
 def get_api_answer(timestamp: int) -> dict[str, Any]:
@@ -70,12 +68,10 @@ def get_api_answer(timestamp: int) -> dict[str, Any]:
             params=params,
         )
 
-    except (requests.RequestException, ValueError) as error:
-        if isinstance(error, requests.RequestException):
-            error_type = 'Сетевая ошибка'
-        elif isinstance(error, ValueError):
-            error_type = 'Ошибка в значении'
-        logging.error(f'{error_type} при запросе к API {error}')
+    except requests.RequestException as error:
+        raise APIRequestError(
+            f"Ошибка при запросе к API: {error}. URL: {ENDPOINT}"
+        )
 
     if response.status_code != 200:
         raise APIRequestError(
@@ -135,22 +131,21 @@ def main() -> None:
         try:
             response = get_api_answer(timestamp)
             homeworks = check_response(response)
-
             if homeworks:
                 message = parse_status(homeworks[0])
             else:
                 message = "Нет новых статусов - работы не проверены"
 
             if message != last_sent_message:
-                send_message(bot, message)
-                last_sent_message = message
-                logging.debug('Сообщение отправлено')
-                timestamp = response.get('current_date', timestamp)
+                if send_message(bot, message):
+                    logging.debug('Сообщение отправлено')
+                    last_sent_message = message
+            timestamp = response.get('current_date', timestamp)
 
         except Exception as error:
             error_message = f'Сбой в работе программы: {error}'
+            logging.error(error_message)
             if error_message != last_sent_message:
-                logging.error(error_message)
                 send_message(bot, error_message)
                 last_sent_message = error_message
         finally:
