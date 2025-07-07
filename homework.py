@@ -137,10 +137,9 @@ def main() -> None:
                 message = "Нет новых статусов - работы не проверены"
 
             if message != last_sent_message:
-                if send_message(bot, message):
-                    logging.debug('Сообщение отправлено')
-                    last_sent_message = message
-            timestamp = response.get('current_date', timestamp)
+                send_success = send_message(bot, message)
+            else:
+                send_success = False
 
         except Exception as error:
             error_message = f'Сбой в работе программы: {error}'
@@ -148,6 +147,10 @@ def main() -> None:
             if error_message != last_sent_message:
                 send_message(bot, error_message)
                 last_sent_message = error_message
+        else:
+            if send_success:
+                last_sent_message = message
+            timestamp = response.get('current_date', timestamp)
         finally:
             time.sleep(RETRY_PERIOD)
 
